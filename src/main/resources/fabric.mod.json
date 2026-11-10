@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "coopkit",
+  "version": "${version}",
+  "name": "CoopKit",
+  "description": "Кооп-набор: включаемые читы (K), общие метки для всех игроков (B / N), компас с метками и вход без лицензии в «Открыть для сети».",
+  "authors": ["CoopKit"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.coopkit.CoopKit"],
+    "client": ["com.coopkit.client.CoopKitClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "fabric-api": "*",
+    "minecraft": "~1.20.1",
+    "java": ">=17"
+  }
+}
