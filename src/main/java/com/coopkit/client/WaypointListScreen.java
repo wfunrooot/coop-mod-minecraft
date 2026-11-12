@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -50,17 +51,38 @@ public class WaypointListScreen extends Screen {
             Button eye = addRenderableWidget(Button.builder(Component.literal(hidden ? "§8◎" : "◉"), b -> {
                 HiddenWaypoints.toggle(w.id());
                 rebuild();
-            }).bounds(left + 212, y, 20, 20).build());
+            }).bounds(left + 104, y, 20, 20).build());
             eye.setTooltip(Tooltip.create(Component.translatable(hidden ? "coopkit.show" : "coopkit.hide")));
 
             if (ClientState.teleportAllowed) {
-                addRenderableWidget(Button.builder(Component.translatable("coopkit.tp"), b -> {
-                    if (this.minecraft != null) this.minecraft.setScreen(new TeleportScreen(this, w));
-                }).bounds(left + 236, y, 48, 20).build());
+                addRenderableWidget(Button.builder(Component.translatable("coopkit.tp.quick"), b -> {
+                    ClientNet.teleport(w.id(), 0, null);
+                    onClose();
+                }).bounds(left + 126, y, 46, 20).build());
+                addRenderableWidget(Button.builder(Component.translatable("coopkit.tp.other"), b -> {
+                    if (this.minecraft != null) this.minecraft.setScreen(new TeleportScreen(this, w, false));
+                }).bounds(left + 174, y, 54, 20).build());
             }
-            Button del = addRenderableWidget(Button.builder(Component.literal("✕"),
-                    b -> ClientNet.removeWaypoint(w.id())).bounds(left + 288, y, 32, 20).build());
-            del.setTooltip(Tooltip.create(Component.translatable("coopkit.delete")));
+            Player player = this.minecraft == null ? null : this.minecraft.player;
+            boolean owner = player != null && w.ownedBy(player.getUUID(), player.getGameProfile().getName());
+            if (owner) {
+                Button share = addRenderableWidget(Button.builder(Component.translatable("coopkit.share"), b -> {
+                    if (this.minecraft != null) this.minecraft.setScreen(new TeleportScreen(this, w, true));
+                }).bounds(left + 230, y, 64, 20).build());
+                share.setTooltip(Tooltip.create(Component.translatable("coopkit.share")));
+            }
+            Button del = addRenderableWidget(Button.builder(Component.literal("✕"), b -> {
+                if (!owner) {
+                    ClientNet.removeWaypoint(w.id());
+                } else if (this.minecraft != null) {
+                    this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
+                        if (confirmed) ClientNet.removeWaypoint(w.id());
+                        this.minecraft.setScreen(this);
+                    }, Component.translatable("coopkit.delete.everyone"),
+                            Component.literal(w.name())));
+                }
+            }).bounds(left + 296, y, 24, 20).build());
+            del.setTooltip(Tooltip.create(Component.translatable(owner ? "coopkit.delete.everyone" : "coopkit.delete.mine")));
         }
 
         int by = TOP + PER_PAGE * ROW + 6;
@@ -127,7 +149,7 @@ public class WaypointListScreen extends Screen {
             boolean hidden = HiddenWaypoints.isHidden(w.id());
             int nameColor = hidden ? 0x777777 : 0xFFFFFF;
             g.fill(left, y + 5, left + 10, y + 15, (hidden ? 0x66000000 : 0xFF000000) | w.color());
-            g.drawString(this.font, this.font.plainSubstrByWidth(w.name(), 194), left + 14, y + 1, nameColor);
+            g.drawString(this.font, this.font.plainSubstrByWidth(w.name(), 88), left + 14, y + 1, nameColor);
 
             String coords = w.pos().getX() + " " + w.pos().getY() + " " + w.pos().getZ();
             String where;
@@ -137,7 +159,7 @@ public class WaypointListScreen extends Screen {
             } else {
                 where = w.dim().getPath() + " · " + coords;
             }
-            g.drawString(this.font, this.font.plainSubstrByWidth(where + " · " + w.owner(), 194),
+            g.drawString(this.font, this.font.plainSubstrByWidth(where + " · " + w.owner(), 88),
                     left + 14, y + 11, 0x999999);
         }
         super.render(g, mouseX, mouseY, partialTick);

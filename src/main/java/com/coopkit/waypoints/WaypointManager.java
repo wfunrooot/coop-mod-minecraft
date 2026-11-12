@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,12 +23,11 @@ public final class WaypointManager {
 
     public static void register() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            ServerPlayer p = handler.getPlayer();
-            server.execute(() -> Net.sendWaypoints(p, WaypointData.get(server).list));
+            server.execute(() -> broadcast(server));
         });
     }
 
-    public static void add(ServerPlayer p, String rawName, int color, int size, int opacity) {
+    public static void add(ServerPlayer p, String rawName, int color, int size, int opacity, boolean publicMarker) {
         MinecraftServer server = p.getServer();
         if (server == null) return;
         WaypointData data = WaypointData.get(server);
@@ -48,13 +48,15 @@ public final class WaypointManager {
                 color & 0xFFFFFF,
                 p.getGameProfile().getName(),
                 Waypoint.clampSize(size),
-                Waypoint.clampOpacity(opacity));
+                Waypoint.clampOpacity(opacity),
+                p.getUUID(), publicMarker, new HashSet<>(), new HashSet<>());
         data.list.add(w);
         data.setDirty();
 
         broadcast(server);
-        server.getPlayerList().broadcastSystemMessage(
-                Component.translatable("coopkit.msg.added", p.getDisplayName(), name), false);
+        var message = Component.translatable("coopkit.msg.added", p.getDisplayName(), name);
+        if (publicMarker) server.getPlayerList().broadcastSystemMessage(message, false);
+        else p.displayClientMessage(message, true);
     }
 
     public static void remove(ServerPlayer p, int id) {
@@ -64,11 +66,37 @@ public final class WaypointManager {
         Optional<Waypoint> found = find(data, id);
         if (found.isEmpty()) return;
 
-        data.list.remove(found.get());
+        Waypoint w = found.get();
+        if (!visibleTo(w, p)) return;
+        if (w.ownedBy(p.getUUID(), p.getGameProfile().getName())) {
+            data.list.remove(w);
+        } else {
+            w.shared().remove(p.getUUID());
+            if (w.publicMarker()) w.removed().add(p.getUUID());
+        }
         data.setDirty();
         broadcast(server);
-        server.getPlayerList().broadcastSystemMessage(
-                Component.translatable("coopkit.msg.removed", p.getDisplayName(), found.get().name()), false);
+    }
+
+    public static void share(ServerPlayer owner, int id, UUID recipientId) {
+        MinecraftServer server = owner.getServer();
+        if (server == null) return;
+        WaypointData data = WaypointData.get(server);
+        Waypoint w = find(data, id).orElse(null);
+        ServerPlayer recipient = server.getPlayerList().getPlayer(recipientId);
+        if (w == null || recipient == null || !w.ownedBy(owner.getUUID(), owner.getGameProfile().getName())
+                || visibleTo(w, recipient)) return;
+
+        if (!w.publicMarker()) w.shared().add(recipientId);
+        w.removed().remove(recipientId);
+        data.setDirty();
+        broadcast(server);
+        recipient.displayClientMessage(
+                Component.translatable("coopkit.msg.shared", owner.getDisplayName(), w.name()), false);
+    }
+
+    private static boolean visibleTo(Waypoint w, ServerPlayer player) {
+        return w.visibleTo(player.getUUID(), player.getGameProfile().getName());
     }
 
     public static final int TP_SELF = 0;
@@ -86,6 +114,7 @@ public final class WaypointManager {
         Optional<Waypoint> found = find(WaypointData.get(server), waypointId);
         if (found.isEmpty()) return;
         Waypoint w = found.get();
+        if (!visibleTo(w, requester)) return;
         ServerLevel level = server.getLevel(ResourceKey.create(Registries.DIMENSION, w.dim()));
         if (level == null) return;
 
@@ -101,6 +130,7 @@ public final class WaypointManager {
             }
         }
 
+        targets.removeIf(t -> !visibleTo(w, t));
         for (ServerPlayer t : targets) {
             t.teleportTo(level, w.pos().getX() + 0.5, w.pos().getY(), w.pos().getZ() + 0.5, t.getYRot(), t.getXRot());
             if (t != requester) {
@@ -119,8 +149,11 @@ public final class WaypointManager {
     }
 
     public static void broadcast(MinecraftServer server) {
-        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            Net.sendWaypoints(p, WaypointData.get(server).list);
+        var players = server.getPlayerList().getPlayers();
+        var online = players.stream().map(ServerPlayer::getUUID).toList();
+        var waypoints = WaypointData.get(server).list;
+        for (ServerPlayer p : players) {
+            Net.sendWaypoints(p, waypoints.stream().filter(w -> visibleTo(w, p)).toList(), online);
         }
     }
 }

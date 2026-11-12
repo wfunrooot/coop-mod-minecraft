@@ -21,15 +21,16 @@ import java.util.UUID;
 public final class Net {
     // клиент -> сервер
     public static final ResourceLocation TOGGLE_CHEAT = id("toggle_cheat");
-    public static final ResourceLocation ADD_WAYPOINT = id("add_waypoint");
+    public static final ResourceLocation ADD_WAYPOINT = id("add_waypoint_v2");
     public static final ResourceLocation WAYPOINT_ACTION = id("waypoint_action");
+    public static final ResourceLocation SHARE_WAYPOINT = id("share_waypoint");
     public static final ResourceLocation TELEPORT = id("teleport");
     public static final ResourceLocation SET_PERMISSION = id("set_permission");
     public static final ResourceLocation SET_WEATHER = id("set_weather");
     public static final ResourceLocation SET_TIME = id("set_time");
     // сервер -> клиент
     public static final ResourceLocation CHEAT_STATE = id("cheat_state");
-    public static final ResourceLocation WAYPOINTS = id("waypoints");
+    public static final ResourceLocation WAYPOINTS = id("waypoints_v2");
     public static final ResourceLocation PERMISSIONS = id("permissions");
     public static final ResourceLocation POSITIONS = id("positions");
 
@@ -54,7 +55,8 @@ public final class Net {
             int color = buf.readInt();
             int size = buf.readVarInt();
             int opacity = buf.readVarInt();
-            server.execute(() -> WaypointManager.add(player, name, color, size, opacity));
+            boolean publicMarker = buf.readBoolean();
+            server.execute(() -> WaypointManager.add(player, name, color, size, opacity, publicMarker));
         });
         ServerPlayNetworking.registerGlobalReceiver(WAYPOINT_ACTION, (server, player, handler, buf, sender) -> {
             int id = buf.readVarInt();
@@ -62,6 +64,11 @@ public final class Net {
             server.execute(() -> {
                 if (action == ACTION_REMOVE) WaypointManager.remove(player, id);
             });
+        });
+        ServerPlayNetworking.registerGlobalReceiver(SHARE_WAYPOINT, (server, player, handler, buf, sender) -> {
+            int id = buf.readVarInt();
+            UUID recipient = buf.readUUID();
+            server.execute(() -> WaypointManager.share(player, id, recipient));
         });
         ServerPlayNetworking.registerGlobalReceiver(TELEPORT, (server, player, handler, buf, sender) -> {
             int waypointId = buf.readVarInt();
@@ -94,10 +101,10 @@ public final class Net {
         ServerPlayNetworking.send(p, CHEAT_STATE, buf);
     }
 
-    public static void sendWaypoints(ServerPlayer p, List<Waypoint> list) {
+    public static void sendWaypoints(ServerPlayer p, List<Waypoint> list, Collection<UUID> online) {
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeVarInt(list.size());
-        for (Waypoint w : list) w.write(buf);
+        for (Waypoint w : list) w.write(buf, online);
         ServerPlayNetworking.send(p, WAYPOINTS, buf);
     }
 

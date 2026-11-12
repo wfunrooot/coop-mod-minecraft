@@ -6,7 +6,8 @@ public enum Cheat {
     GOD("god", 1),
     NO_FALL("nofall", 2),
     NIGHT_VISION("nightvision", 3),
-    WATER_BREATHING("water", 7);
+    WATER_BREATHING("water", 7),
+    NO_HUNGER("nohunger", 6);
 
     public final String id;
     private final int bitIndex;

@@ -169,14 +169,19 @@ public final class CheatManager {
 
     private static void onServerTick(MinecraftServer server) {
         if (server.getTickCount() % 10 == 0) Net.broadcastPositions(server);
-        if (server.getTickCount() % 20 != 0) return;
+        boolean refreshEffects = server.getTickCount() % 20 == 0;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            if (mask(p) == 0) continue;
+            int active = mask(p);
+            if (active == 0 || (!refreshEffects && (active & Cheat.NO_HUNGER.bit()) == 0)) continue;
             if (!allowed(p)) {
                 clearAll(p);
                 continue;
             }
-            apply(p);
+            if ((active & Cheat.NO_HUNGER.bit()) != 0) {
+                p.getFoodData().setFoodLevel(20);
+                p.getFoodData().setExhaustion(0.0F);
+            }
+            if (refreshEffects) apply(p);
         }
     }
 }

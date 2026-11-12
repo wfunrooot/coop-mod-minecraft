@@ -21,6 +21,7 @@ public class WaypointAddScreen extends Screen {
     private static int lastSize = 100;
     private static int lastOpacity = 100;
 
+    private boolean publicMarker;
     private EditBox nameBox;
     private int top;
 
@@ -31,7 +32,7 @@ public class WaypointAddScreen extends Screen {
     @Override
     protected void init() {
         int cx = this.width / 2;
-        top = this.height / 2 - 70;
+        top = this.height / 2 - 84;
 
         nameBox = new EditBox(this.font, cx - 100, top + 30, 200, 20, Component.translatable("coopkit.waypoint.name"));
         nameBox.setMaxLength(32);
@@ -49,10 +50,15 @@ public class WaypointAddScreen extends Screen {
         addRenderableWidget(new PercentSlider(cx - 100, top + 102, "coopkit.opacity",
                 Waypoint.MIN_OPACITY, Waypoint.MAX_OPACITY, lastOpacity, v -> lastOpacity = v));
 
+        addRenderableWidget(Button.builder(visibilityLabel(), b -> {
+            publicMarker = !publicMarker;
+            b.setMessage(visibilityLabel());
+        }).bounds(cx - 100, top + 126, 200, 20).build());
+
         addRenderableWidget(Button.builder(Component.translatable("coopkit.save"), b -> save())
-                .bounds(cx - 100, top + 132, 98, 20).build());
+                .bounds(cx - 100, top + 152, 98, 20).build());
         addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> onClose())
-                .bounds(cx + 2, top + 132, 98, 20).build());
+                .bounds(cx + 2, top + 152, 98, 20).build());
     }
 
     private static Component colorLabel() {
@@ -61,8 +67,12 @@ public class WaypointAddScreen extends Screen {
                 .append(Component.literal("■■■■").withStyle(s -> s.withColor(color)));
     }
 
+    private Component visibilityLabel() {
+        return Component.translatable(publicMarker ? "coopkit.visibility.public" : "coopkit.visibility.private");
+    }
+
     private void save() {
-        ClientNet.addWaypoint(nameBox.getValue(), COLORS[lastColor], lastSize, lastOpacity);
+        ClientNet.addWaypoint(nameBox.getValue(), COLORS[lastColor], lastSize, lastOpacity, publicMarker);
         onClose();
     }
 

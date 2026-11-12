@@ -68,13 +68,21 @@ public final class ClientNet {
         ClientPlayNetworking.send(Net.TOGGLE_CHEAT, buf);
     }
 
-    public static void addWaypoint(String name, int color, int size, int opacity) {
+    public static void addWaypoint(String name, int color, int size, int opacity, boolean publicMarker) {
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeUtf(name, 64);
         buf.writeInt(color);
         buf.writeVarInt(size);
         buf.writeVarInt(opacity);
+        buf.writeBoolean(publicMarker);
         ClientPlayNetworking.send(Net.ADD_WAYPOINT, buf);
+    }
+
+    public static void shareWaypoint(int id, UUID recipient) {
+        FriendlyByteBuf buf = PacketByteBufs.create();
+        buf.writeVarInt(id);
+        buf.writeUUID(recipient);
+        ClientPlayNetworking.send(Net.SHARE_WAYPOINT, buf);
     }
 
     public static void removeWaypoint(int id) {

@@ -12,21 +12,24 @@ import net.minecraft.util.Mth;
 
 import java.util.List;
 
-/** Кого отправить на метку: себя, конкретного игрока или всех. */
+/** Выбор получателя метки или игрока для телепортации. */
 public class TeleportScreen extends Screen {
     private static final int PER_PAGE = 6;
     private static final int ROW = 24;
-    private static final int TOP = 64;
+    private static final int TOP = 42;
 
     private final Screen parent;
-    private final Waypoint waypoint;
+    private Waypoint waypoint;
+    private final boolean sharing;
+    private List<PlayerInfo> seenPlayers = List.of();
     private int page = 0;
     private List<PlayerInfo> shown = List.of();
 
-    public TeleportScreen(Screen parent, Waypoint waypoint) {
-        super(Component.translatable("coopkit.screen.teleport", waypoint.name()));
+    public TeleportScreen(Screen parent, Waypoint waypoint, boolean sharing) {
+        super(Component.translatable(sharing ? "coopkit.screen.share" : "coopkit.screen.teleport", waypoint.name()));
         this.parent = parent;
         this.waypoint = waypoint;
+        this.sharing = sharing;
     }
 
     private int left() {
@@ -36,12 +39,13 @@ public class TeleportScreen extends Screen {
     @Override
     protected void init() {
         int left = left();
-        addRenderableWidget(Button.builder(Component.translatable("coopkit.tp.self"), b -> send(0, null))
-                .bounds(left, 36, 108, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("coopkit.tp.all"), b -> send(2, null))
-                .bounds(left + 112, 36, 108, 20).build());
-
-        List<PlayerInfo> all = OnlinePlayers.list(true);
+        seenPlayers = OnlinePlayers.list(true);
+        List<PlayerInfo> all = seenPlayers.stream().filter(info ->
+                waypoint.visibleTo(info.getProfile().getId(), info.getProfile().getName()) != sharing).toList();
+        if (!sharing && !all.isEmpty()) {
+            addRenderableWidget(Button.builder(Component.translatable("coopkit.tp.all"), b -> send(2, null))
+                    .bounds(left + 56, 24, 108, 16).build());
+        }
         int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
         page = Mth.clamp(page, 0, pages - 1);
         int from = page * PER_PAGE;
@@ -69,6 +73,10 @@ public class TeleportScreen extends Screen {
     }
 
     private void send(int mode, java.util.UUID target) {
+        if (sharing) {
+            ClientNet.shareWaypoint(waypoint.id(), target);
+            return;
+        }
         ClientNet.teleport(waypoint.id(), mode, target);
         if (this.minecraft != null) this.minecraft.setScreen(null);
     }
@@ -80,13 +88,24 @@ public class TeleportScreen extends Screen {
 
     @Override
     public void tick() {
-        if (!ClientState.teleportAllowed) onClose();
+        Waypoint current = ClientState.waypoints.stream().filter(w -> w.id() == waypoint.id()).findFirst().orElse(null);
+        if (current == null || (!sharing && !ClientState.teleportAllowed)) {
+            onClose();
+            return;
+        }
+        if (current != waypoint || !seenPlayers.equals(OnlinePlayers.list(true))) {
+            waypoint = current;
+            rebuild();
+        }
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
         g.drawCenteredString(this.font, this.title, this.width / 2, 14, 0xFFFFFF);
+        if (shown.isEmpty()) {
+            g.drawCenteredString(this.font, Component.translatable("coopkit.no_players"), this.width / 2, 65, 0xAAAAAA);
+        }
         int left = left();
         for (int i = 0; i < shown.size(); i++) {
             PlayerFaceRenderer.draw(g, shown.get(i).getSkinLocation(), left, TOP + i * ROW + 2, 16);
