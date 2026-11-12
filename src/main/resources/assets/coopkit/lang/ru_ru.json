@@ -97,5 +97,10 @@
   "item.coopkit.held_trader_llama": "Лама торговца в руках",
   "coopkit.msg.pet_eaten.1": "Питомец «%1$s» был съеден игроком %2$s.",
   "coopkit.msg.pet_eaten.2": "У игрока %2$s сегодня на обед питомец «%1$s».",
-  "coopkit.msg.pet_eaten.3": "Питомец «%1$s» встретил свой конец в желудке игрока %2$s."
+  "coopkit.msg.pet_eaten.3": "Питомец «%1$s» встретил свой конец в желудке игрока %2$s.",
+  "key.coopkit.bhop": "Переключить бхоп",
+  "coopkit.bhop.on": "Бхоп включён",
+  "coopkit.bhop.off": "Бхоп выключен",
+  "coopkit.animal.legacy": "Данные этого животного не сохранились. Подбери новое животное.",
+  "coopkit.animal.no_space": "Здесь не хватает места, чтобы поставить животное."
 }

@@ -11,6 +11,7 @@
     "main": ["com.coopkit.CoopKit"],
     "client": ["com.coopkit.client.CoopKitClient"]
   },
+  "mixins": ["coopkit.mixins.json"],
   "depends": {
     "fabricloader": ">=0.14.21",
     "fabric-api": "*",

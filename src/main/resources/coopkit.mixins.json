@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.coopkit.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "coopkit.refmap.json",
+  "client": [
+    "client.LivingEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

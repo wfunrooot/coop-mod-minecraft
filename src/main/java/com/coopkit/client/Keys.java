@@ -13,5 +13,8 @@ public final class Keys {
     public static final KeyMapping WAYPOINTS =
             new KeyMapping("key.coopkit.waypoints", GLFW.GLFW_KEY_N, CATEGORY);
 
+    public static final KeyMapping BHOP =
+            new KeyMapping("key.coopkit.bhop", GLFW.GLFW_KEY_H, CATEGORY);
+
     private Keys() {}
 }

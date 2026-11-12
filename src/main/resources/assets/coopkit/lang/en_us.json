@@ -97,5 +97,10 @@
   "item.coopkit.held_trader_llama": "Trader llama (held)",
   "coopkit.msg.pet_eaten.1": "%1$s was eaten by %2$s.",
   "coopkit.msg.pet_eaten.2": "%1$s was on the menu for %2$s.",
-  "coopkit.msg.pet_eaten.3": "%1$s was eaten whole by %2$s."
+  "coopkit.msg.pet_eaten.3": "%1$s was eaten whole by %2$s.",
+  "key.coopkit.bhop": "Toggle bunny hop",
+  "coopkit.bhop.on": "Bunny hop on",
+  "coopkit.bhop.off": "Bunny hop off",
+  "coopkit.animal.legacy": "This item has no saved animal data. Pick up another animal.",
+  "coopkit.animal.no_space": "There is not enough room to place this animal."
 }
