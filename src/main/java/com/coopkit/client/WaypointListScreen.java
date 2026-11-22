@@ -21,7 +21,10 @@ public class WaypointListScreen extends Screen {
 
     private int page = 0;
     private List<Waypoint> shown = List.of();
+    private List<Waypoint> ordered = List.of();
     private List<Waypoint> seen;
+    private int dragId = -1;
+    private boolean dragged = false;
     private boolean seenAllowed;
 
     public WaypointListScreen() {
@@ -36,7 +39,8 @@ public class WaypointListScreen extends Screen {
     protected void init() {
         seen = ClientState.waypoints;
         seenAllowed = ClientState.teleportAllowed;
-        List<Waypoint> all = seen;
+        ordered = WaypointOrder.sort(seen);
+        List<Waypoint> all = ordered;
         int pages = Math.max(1, (all.size() + PER_PAGE - 1) / PER_PAGE);
         page = Mth.clamp(page, 0, pages - 1);
         int from = page * PER_PAGE;
@@ -137,6 +141,7 @@ public class WaypointListScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
         g.drawCenteredString(this.font, this.title, this.width / 2, 14, 0xFFFFFF);
+        g.drawCenteredString(this.font, Component.translatable("coopkit.order.hint"), this.width / 2, 25, 0xAAAAAA);
         if (shown.isEmpty()) {
             g.drawCenteredString(this.font, Component.translatable("coopkit.empty"), this.width / 2, 60, 0xAAAAAA);
         }
@@ -148,6 +153,7 @@ public class WaypointListScreen extends Screen {
             int y = TOP + i * ROW;
             boolean hidden = HiddenWaypoints.isHidden(w.id());
             int nameColor = hidden ? 0x777777 : 0xFFFFFF;
+            if (dragId == w.id()) g.fill(left - 3, y - 1, left + 102, y + 21, 0x6655AAFF);
             g.fill(left, y + 5, left + 10, y + 15, (hidden ? 0x66000000 : 0xFF000000) | w.color());
             g.drawString(this.font, this.font.plainSubstrByWidth(w.name(), 88), left + 14, y + 1, nameColor);
 
@@ -163,6 +169,57 @@ public class WaypointListScreen extends Screen {
                     left + 14, y + 11, 0x999999);
         }
         super.render(g, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && mouseX >= left() && mouseX <= left() + 100) {
+            int row = (int) ((mouseY - TOP) / ROW);
+            if (row >= 0 && row < shown.size() && mouseY >= TOP && mouseY < TOP + shown.size() * ROW) {
+                dragId = shown.get(row).id();
+                dragged = false;
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (button == 0 && dragId >= 0) {
+            dragged = true;
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0 && dragId >= 0) {
+            if (dragged) {
+                int row = (int) ((mouseY - TOP) / ROW);
+                if (mouseX >= left() && mouseX <= left() + 100 && row >= 0 && row < shown.size()) {
+                    Waypoint target = shown.get(row);
+                    int targetIndex = ordered.indexOf(target);
+                    WaypointOrder.moveToIndex(seen, dragId, targetIndex);
+                    rebuild();
+                } else if (mouseY >= TOP + PER_PAGE * ROW + 4 && mouseY <= TOP + PER_PAGE * ROW + 28) {
+                    if (mouseX >= left() && mouseX <= left() + 22 && page > 0) {
+                        WaypointOrder.moveToIndex(seen, dragId, Math.max(0, page * PER_PAGE - PER_PAGE));
+                        page--;
+                        rebuild();
+                    } else if (mouseX >= left() + 298 && mouseX <= left() + 322 && (page + 1) * PER_PAGE < ordered.size()) {
+                        WaypointOrder.moveToIndex(seen, dragId, Math.min(ordered.size() - 1, (page + 1) * PER_PAGE));
+                        page++;
+                        rebuild();
+                    }
+                }
+            }
+            dragId = -1;
+            dragged = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override

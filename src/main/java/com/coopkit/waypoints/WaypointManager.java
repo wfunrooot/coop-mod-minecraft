@@ -148,6 +148,16 @@ public final class WaypointManager {
         return data.list.stream().filter(w -> w.id() == id).findFirst();
     }
 
+    /** Повторная адресная отправка после того, как клиент завершил вход в мир. */
+    public static void sendWaypoints(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null) return;
+        List<UUID> online = server.getPlayerList().getPlayers().stream().map(ServerPlayer::getUUID).toList();
+        List<Waypoint> visible = WaypointData.get(server).list.stream()
+                .filter(w -> visibleTo(w, player)).toList();
+        Net.sendWaypoints(player, visible, online);
+    }
+
     public static void broadcast(MinecraftServer server) {
         var players = server.getPlayerList().getPlayers();
         var online = players.stream().map(ServerPlayer::getUUID).toList();

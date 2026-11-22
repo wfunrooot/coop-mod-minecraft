@@ -17,6 +17,10 @@ public class CoopKitClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(Keys.BHOP);
 
         ClientNet.register();
+        // JOIN вызывается на клиенте после установки соединения. Запрашиваем
+        // полный список отдельно, чтобы не зависеть от момента серверного JOIN broadcast.
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
+                client.execute(ClientNet::requestWaypoints));
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             ClientBhop.tick(mc.player);

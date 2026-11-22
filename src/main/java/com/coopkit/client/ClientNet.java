@@ -62,6 +62,10 @@ public final class ClientNet {
         });
     }
 
+    public static void requestWaypoints() {
+        ClientPlayNetworking.send(Net.REQUEST_WAYPOINTS, PacketByteBufs.empty());
+    }
+
     public static void toggleCheat(Cheat c) {
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeVarInt(c.ordinal());

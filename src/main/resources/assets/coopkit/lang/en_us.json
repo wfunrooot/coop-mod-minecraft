@@ -102,5 +102,6 @@
   "coopkit.bhop.on": "Bunny hop on",
   "coopkit.bhop.off": "Bunny hop off",
   "coopkit.animal.legacy": "This item has no saved animal data. Pick up another animal.",
-  "coopkit.animal.no_space": "There is not enough room to place this animal."
+  "coopkit.animal.no_space": "There is not enough room to place this animal.",
+  "coopkit.order.hint": "Drag markers to reorder; drop on arrows to move between pages"
 }

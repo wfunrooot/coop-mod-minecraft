@@ -28,6 +28,7 @@ public final class Net {
     public static final ResourceLocation SET_PERMISSION = id("set_permission");
     public static final ResourceLocation SET_WEATHER = id("set_weather");
     public static final ResourceLocation SET_TIME = id("set_time");
+    public static final ResourceLocation REQUEST_WAYPOINTS = id("request_waypoints");
     // сервер -> клиент
     public static final ResourceLocation CHEAT_STATE = id("cheat_state");
     public static final ResourceLocation WAYPOINTS = id("waypoints_v2");
@@ -43,6 +44,9 @@ public final class Net {
     }
 
     public static void registerServer() {
+        ServerPlayNetworking.registerGlobalReceiver(REQUEST_WAYPOINTS, (server, player, handler, buf, sender) -> {
+            server.execute(() -> WaypointManager.sendWaypoints(player));
+        });
         ServerPlayNetworking.registerGlobalReceiver(TOGGLE_CHEAT, (server, player, handler, buf, sender) -> {
             int ordinal = buf.readVarInt();
             server.execute(() -> {
